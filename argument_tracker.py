@@ -15,6 +15,15 @@ def get_block_by_ea(tgtEA):
                 return block.start_ea
     return 0
 
+def add_ref(frm, to):
+    idaapi.add_dref(frm, to, idaapi.dr_R)
+    idaapi.add_dref(to, frm, idaapi.dr_R)
+
+def del_ref(frm, to):
+    idaapi.del_dref(frm, to)
+    idaapi.del_dref(to, frm)
+    idaapi.del_cref(frm, to, 0)
+    idaapi.del_cref(to, frm, 0)
 
 def map_line2citem(decompilation_text):
     """
@@ -534,11 +543,56 @@ def dump_ke_task_create():
         task_desc_ea = v
         task_desc_name = "{}_task_desc".format(frm_func.split("_init")[0])
         define_ke_task_desc(task_desc_ea, task_desc_name)
-        
+
         handler = idaapi.get_dword(task_desc_ea + 4)
         define_ke_state_handler(handler)
 
     return retsult
+
+def track_ke_event_callback_set():
+    logger = CustomLogger()
+    m = CodeEmulator()
+    at = ArgumentTracker()
+
+    event_dict = {}
+
+    target_addr = idaapi.get_name_ea(idaapi.BADADDR, "ke_event_callback_set")
+    print "ke_event_callback_set: 0x{:X}".format(target_addr)
+    for xref in XrefsTo(target_addr, 0):
+        frm_func = idc.get_func_name(xref.frm)
+
+        r1_ret = at.track_register(xref.frm, "r1")
+        r0_ret = at.track_register(xref.frm, "r0")
+        if r0_ret.has_key("target_ea") and r1_ret.has_key("target_ea"):
+            
+            start_ea = min(r0_ret['target_ea'], r1_ret['target_ea'])
+
+            if m.emulate(start_ea, xref.frm):
+                r1 = m.mu.reg_read(UC_ARM_REG_R1)
+                r0 = m.mu.reg_read(UC_ARM_REG_R0)
+                callback_func_name = idc.get_func_name(r1)
+
+                if callback_func_name == "":
+                    define_func(r1, "event_{}_callback_func".format(r0))
+                    callback_func_name = idc.get_func_name(r1)
+
+                if r1 & 1:
+                    r1 -= 1
+                event_dict[r0] = r1
+                logger.log("addr: 0x{:X}, event: 0x{:X}, callback: {} @ 0x{:X}".format(xref.frm, r0, callback_func_name, r1))
+
+    target_addr = idaapi.get_name_ea(idaapi.BADADDR, "ke_event_set")
+    print "ke_event_set: 0x{:X}".format(target_addr)
+    for xref in XrefsTo(target_addr, 0):
+        r0_ret = at.track_register(xref.frm, "r0")
+        if r0_ret.has_key("target_ea"):
+            start_ea = r0_ret['target_ea']
+            if m.emulate(start_ea, xref.frm):
+                r0 = m.mu.reg_read(UC_ARM_REG_R0)
+                logger.log("addr: 0x{:X}, use event: {}".format(xref.frm, r0))
+                add_ref(xref.frm, event_dict[r0])
+
+
 
 def extract_ke_msg_alloc_msgid(line):
     target = re.findall("ke_msg_alloc\((.*?),", line)
@@ -595,6 +649,8 @@ def dump_msg_id_usage():
 
 
 if __name__ == "__main__":
-    dump_ke_task_create()
+    # dump_ke_task_create()
     # dump_msg_id_usage()
+
+    track_ke_event_callback_set()
 
