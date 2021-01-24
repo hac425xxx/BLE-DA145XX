@@ -3,7 +3,7 @@ import idc
 from unicorn import *
 from unicorn.arm_const import *
 import re
-
+import ida_expr
 
 def get_block_by_ea(tgtEA):
     f = idaapi.get_func(tgtEA)
@@ -349,7 +349,7 @@ class ArgumentTracker:
 
         return ret
 
-    def decompile_tracer(self, ea):
+    def decompile_tracer(self, ea, extract_func):
         c = idaapi.decompile(ea)
 
         # decompilation_text = c.get_pseudocode()
@@ -369,10 +369,9 @@ class ArgumentTracker:
         lines = str(c).split("\n")
         idx = 0
         for l in lines:
-            target = re.findall("ke_msg_alloc\((.*?),", l)
-            if len(target) > 0:
-                # print target[0]
-                sink_list.append((idx, target[0]))
+            arg = extract_func(l)
+            if arg != "":
+                sink_list.append((idx, arg))
             idx += 1
 
         # print sink_list
@@ -445,9 +444,47 @@ class CustomLogger:
         self.file.write(data + "\n")
 
 
+def extract_ke_task_create(line):
+    args = re.findall("ke_task_create\((.*)\)", line)
+    if len(args) == 0:
+        return ""
 
-if __name__ == "__main__":
+    arg = args[0].split(",")[1]
+    # print arg
+    return arg.strip()
 
+
+def dump_ke_task_create():
+    logger = CustomLogger()
+    m = CodeEmulator()
+    at = ArgumentTracker()
+
+    ke_task_create_addr = idaapi.get_name_ea(idaapi.BADADDR, "ke_task_create")
+    print "ke_task_create_addr: 0x{:X}".format(ke_task_create_addr)
+    for xref in XrefsTo(ke_task_create_addr, 0):
+        frm_func = idc.get_func_name(xref.frm)
+        ret = at.track_register(xref.frm, "r1")
+        if ret.has_key("target_ea"):
+            print "target_ea: 0x{:X}".format(ret['target_ea'])
+            if m.emulate(ret['target_ea'], xref.frm):
+                reg = m.mu.reg_read(UC_ARM_REG_R1)
+                logger.log("addr: 0x{:X}, task_struct: 0x{:X}".format(xref.frm, reg))
+
+
+        logger.log("[decompile_tracer] addr: 0x{:X}, task_struct: 0x{:X}".format(xref.frm, at.decompile_tracer(xref.frm, extract_ke_task_create)[0]))
+
+
+
+def extract_ke_msg_alloc_msgid(line):
+    target = re.findall("ke_msg_alloc\((.*?),", line)
+
+    if len(target) == 0:
+        return ""
+
+    return target[0]
+
+
+def dump_msg_id_usage():
     logger = CustomLogger()
 
 
@@ -464,7 +501,7 @@ if __name__ == "__main__":
 
     a = ArgumentTracker()
 
-    print a.decompile_tracer(0x7F22BEE)
+    print a.decompile_tracer(0x7F22BEE, extract_ke_msg_alloc_msgid)
 
     # print a.track_register(here(), "r0")
 
@@ -484,16 +521,18 @@ if __name__ == "__main__":
 
         if ret.has_key("target_ea"):
             # print "target_ea: 0x{:X}".format(ret['target_ea'])
-            if not result.has_key(frm_func):
-                result[frm_func] = set()
-
             if m.emulate(ret['target_ea'], xref.frm):
+                if not result.has_key(xref.frm):
+                    result[xref.frm] = set()
                 r0 = m.mu.reg_read(UC_ARM_REG_R0)
                 logger.log("addr: 0x{:X}, msg id: 0x{:X}".format(xref.frm, r0))
-                result[frm_func].add(r0)
+                result[xref.frm].add(r0)
             else:
+
+                if not result.has_key(frm_func):
+                    result[frm_func] = set()
                 # print "emulate 0x{:X}----0x{:X} failed!".format(ret['target_ea'], xref.frm)
-                for msg_id in a.decompile_tracer(xref.frm):
+                for msg_id in a.decompile_tracer(xref.frm, extract_ke_msg_alloc_msgid):
                     logger.log("[ decompile_tracer ] addr: 0x{:X}, msg id: 0x{:X}".format(xref.frm, msg_id))
                     result[frm_func].add(msg_id)
         else:
@@ -509,12 +548,8 @@ if __name__ == "__main__":
         fp.write(json.dumps(result))
 
 
-"""   
- 
-    
-"""
 
-#get_argument_by_unicorn(0x7F09CC0, 0x07F09CC6)
-#get_argument_by_unicorn(0x07F14BFA, 0x07F14C02)
+if __name__ == "__main__":
+    dump_ke_task_create()
 
-# print "0x{:X}".format(get_block_by_ea(here()))
+

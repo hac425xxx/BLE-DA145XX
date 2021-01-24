@@ -76,6 +76,10 @@ with open("msg_id_usage.json", "r") as fp:
 for k, v in usage.items():
     print k
     frm_ea = idaapi.get_name_ea(idaapi.BADADDR, str(k))
+
+    if frm_ea == idaapi.BADADDR:
+        frm_ea = int(k)
+
     for msg_id in v:
         for handler in search_msg_handler(msg_id):
 
