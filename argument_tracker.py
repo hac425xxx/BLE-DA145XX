@@ -5,6 +5,7 @@ from unicorn.arm_const import *
 import re
 import ida_expr
 
+
 def get_block_by_ea(tgtEA):
     f = idaapi.get_func(tgtEA)
     fc = idaapi.FlowChart(f)
@@ -15,15 +16,18 @@ def get_block_by_ea(tgtEA):
                 return block.start_ea
     return 0
 
+
 def add_ref(frm, to):
     idaapi.add_dref(frm, to, idaapi.dr_R)
     idaapi.add_dref(to, frm, idaapi.dr_R)
+
 
 def del_ref(frm, to):
     idaapi.del_dref(frm, to)
     idaapi.del_dref(to, frm)
     idaapi.del_cref(frm, to, 0)
     idaapi.del_cref(to, frm, 0)
+
 
 def map_line2citem(decompilation_text):
     """
@@ -445,7 +449,7 @@ class ArgumentTracker:
 
 class CustomLogger:
     def __init__(self):
-        
+
         self.file = open("log.txt", "w")
 
     def log(self, data):
@@ -462,18 +466,20 @@ def extract_ke_task_create(line):
     # print arg
     return arg.strip()
 
+
 def define_func(addr, name=""):
-    
+
     if addr & 1:
         addr -= 1
         idaapi.split_sreg_range(addr, idaapi.str2reg("T"), 1, idaapi.SR_user)
     else:
         idaapi.split_sreg_range(addr, idaapi.str2reg("T"), 0, idaapi.SR_user)
-    
+
     if idaapi.create_insn(addr):
         idc.add_func(addr)
         if name != "":
-            idaapi.set_name(addr, name,idaapi.SN_FORCE)
+            idaapi.set_name(addr, name, idaapi.SN_FORCE)
+
 
 def define_ke_state_handler(ea):
     # undefined addr and define struct
@@ -481,33 +487,30 @@ def define_ke_state_handler(ea):
     struct_size = idaapi.get_struc_size(sid)
     idaapi.del_items(ea, struct_size, idaapi.DELIT_DELNAMES)
     idaapi.create_struct(ea, struct_size, sid)
-    
-    
+
     msg_table = idaapi.get_dword(ea)
     msg_cnt = idaapi.get_word(ea + 4)
-    
+
     print "msg_table: 0x{:X}, msg_cnt: {}".format(msg_table, msg_cnt)
-    
+
     sid = idaapi.get_struc_id("ke_msg_handler")
     struct_size = idaapi.get_struc_size(sid)
     idaapi.del_items(msg_table, struct_size, idaapi.DELIT_DELNAMES)
     idaapi.create_struct(msg_table, struct_size, sid)
-    
+
     idc.make_array(msg_table, msg_cnt)
-    
-    
+
     for i in range(msg_cnt):
         define_func(idaapi.get_dword(msg_table + 4 + i * 8))
-    
-    
-    
+
+
 def define_ke_task_desc(ea, task_desc_name):
 
     print "{}: 0x{:X}".format(task_desc_name, ea)
 
     sid = idaapi.get_struc_id("ke_task_desc")
     struct_size = idaapi.get_struc_size(sid)
-    
+
     # undefined addr and define struct
     idaapi.del_items(ea, struct_size, idaapi.DELIT_DELNAMES)
     idaapi.create_struct(ea, struct_size, sid)
@@ -531,10 +534,10 @@ def dump_ke_task_create():
             print "target_ea: 0x{:X}".format(ret['target_ea'])
             if m.emulate(ret['target_ea'], xref.frm):
                 reg = m.mu.reg_read(UC_ARM_REG_R1)
-                logger.log("addr: 0x{:X}, task_struct: 0x{:X}".format(xref.frm, reg))
+                logger.log(
+                    "addr: 0x{:X}, task_struct: 0x{:X}".format(xref.frm, reg))
 
                 retsult[xref.frm] = reg
-
 
         # logger.log("[decompile_tracer] addr: 0x{:X}, task_struct: 0x{:X}".format(xref.frm, at.decompile_tracer(xref.frm, extract_ke_task_create)[0]))
 
@@ -548,6 +551,7 @@ def dump_ke_task_create():
         define_ke_state_handler(handler)
 
     return retsult
+
 
 def track_ke_event_callback_set():
     logger = CustomLogger()
@@ -564,7 +568,7 @@ def track_ke_event_callback_set():
         r1_ret = at.track_register(xref.frm, "r1")
         r0_ret = at.track_register(xref.frm, "r0")
         if r0_ret.has_key("target_ea") and r1_ret.has_key("target_ea"):
-            
+
             start_ea = min(r0_ret['target_ea'], r1_ret['target_ea'])
 
             if m.emulate(start_ea, xref.frm):
@@ -579,7 +583,8 @@ def track_ke_event_callback_set():
                 if r1 & 1:
                     r1 -= 1
                 event_dict[r0] = r1
-                logger.log("addr: 0x{:X}, event: 0x{:X}, callback: {} @ 0x{:X}".format(xref.frm, r0, callback_func_name, r1))
+                logger.log("addr: 0x{:X}, event: 0x{:X}, callback: {} @ 0x{:X}".format(
+                    xref.frm, r0, callback_func_name, r1))
 
     target_addr = idaapi.get_name_ea(idaapi.BADADDR, "ke_event_set")
     print "ke_event_set: 0x{:X}".format(target_addr)
@@ -591,7 +596,6 @@ def track_ke_event_callback_set():
                 r0 = m.mu.reg_read(UC_ARM_REG_R0)
                 logger.log("addr: 0x{:X}, use event: {}".format(xref.frm, r0))
                 add_ref(xref.frm, event_dict[r0])
-
 
 
 def extract_ke_msg_alloc_msgid(line):
@@ -607,7 +611,6 @@ def dump_msg_id_usage():
     logger = CustomLogger()
     m = CodeEmulator()
     a = ArgumentTracker()
-
 
     ke_msg_alloc_addr = idaapi.get_name_ea(idaapi.BADADDR, "ke_msg_alloc")
 
@@ -633,13 +636,15 @@ def dump_msg_id_usage():
                     result[frm_func] = set()
                 # print "emulate 0x{:X}----0x{:X} failed!".format(ret['target_ea'], xref.frm)
                 for msg_id in a.decompile_tracer(xref.frm, extract_ke_msg_alloc_msgid):
-                    logger.log("[ decompile_tracer ] addr: 0x{:X}, msg id: 0x{:X}".format(xref.frm, msg_id))
+                    logger.log("[ decompile_tracer ] addr: 0x{:X}, msg id: 0x{:X}".format(
+                        xref.frm, msg_id))
                     result[frm_func].add(msg_id)
         else:
             logger.log("0x{:X} failed!".format(xref.frm))
 
     for k, v in result.items():
-        logger.log("{}: {}".format(k, ','.join(["0x{:X}".format(i) for i in v])))
+        logger.log("{}: {}".format(k, ','.join(
+            ["0x{:X}".format(i) for i in v])))
         result[k] = list(result[k])
 
     import json
@@ -649,8 +654,7 @@ def dump_msg_id_usage():
 
 
 if __name__ == "__main__":
-    # dump_ke_task_create()
-    # dump_msg_id_usage()
+    dump_ke_task_create()
+    dump_msg_id_usage()
 
     track_ke_event_callback_set()
-

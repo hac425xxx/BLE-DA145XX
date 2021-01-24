@@ -39,25 +39,26 @@ def search_msg_handler(msg_id):
     find_addr = idc.find_binary(addr, SEARCH_DOWN, data)
 
     while find_addr != idaapi.BADADDR:
+        func_addr = idaapi.get_dword(find_addr + 4)
+        if is_func_ea(func_addr):
+            print "  msg_id 0x{:X} @ 0x{:X}, handler: 0x{:X}".format(msg_id, find_addr, func_addr)
+            ret.append(func_addr)
+
+        # custom_msg_handler
+        func_addr = idaapi.get_dword(find_addr + 2)
+        if is_func_ea(func_addr):
+            print "  [custom_msg_handler] msg_id 0x{:X} @ 0x{:X}, handler: 0x{:X}".format(msg_id, find_addr, func_addr)
+            ret.append(func_addr)
+
         find_addr = idc.find_binary(find_addr + 1, SEARCH_DOWN, data)
 
-        if find_addr != idaapi.BADADDR:
-            func_addr = idaapi.get_dword(find_addr + 4)
-            if is_func_ea(func_addr):
-                print "  msg_id 0x{:X} @ 0x{:X}, handler: 0x{:X}".format(msg_id, find_addr, func_addr)
-                ret.append(func_addr)
-
-            # custom_msg_handler
-            func_addr = idaapi.get_dword(find_addr + 2)
-            if is_func_ea(func_addr):
-                print "  [custom_msg_handler] msg_id 0x{:X} @ 0x{:X}, handler: 0x{:X}".format(msg_id, find_addr, func_addr)
-                ret.append(func_addr)
     return ret
 
 
 def add_ref(frm, to):
     idaapi.add_dref(frm, to, idaapi.dr_R)
     idaapi.add_dref(to, frm, idaapi.dr_R)
+
 
 def del_ref(frm, to):
     idaapi.del_dref(frm, to)
