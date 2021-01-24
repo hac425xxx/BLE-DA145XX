@@ -486,31 +486,13 @@ def extract_ke_msg_alloc_msgid(line):
 
 def dump_msg_id_usage():
     logger = CustomLogger()
-
-
     m = CodeEmulator()
-    m.emulate(0x7F09CC0, 0x07F09CC6)
-    r1 = m.mu.reg_read(UC_ARM_REG_R1)
-
-    print "r1: 0x{:X}".format(r1)
-
-    m.emulate(0x7F22A02, 0x7F22A0A)
-    r0 = m.mu.reg_read(UC_ARM_REG_R0)
-
-    print "r0: 0x{:X}".format(r0)
-
     a = ArgumentTracker()
 
-    print a.decompile_tracer(0x7F22BEE, extract_ke_msg_alloc_msgid)
-
-    # print a.track_register(here(), "r0")
 
     ke_msg_alloc_addr = idaapi.get_name_ea(idaapi.BADADDR, "ke_msg_alloc")
 
-    print "ke_msg_alloc_addr: 0x{:X}".format(ke_msg_alloc_addr)
-
     result = {}
-
     for xref in XrefsTo(ke_msg_alloc_addr, 0):
         frm_func = idc.get_func_name(xref.frm)
 
@@ -518,7 +500,6 @@ def dump_msg_id_usage():
         # print "  task_desc: 0x{:X}".format(idaapi.get_arg_addrs(xref.frm)[1])
 
         ret = a.track_register(xref.frm, "r0")
-
         if ret.has_key("target_ea"):
             # print "target_ea: 0x{:X}".format(ret['target_ea'])
             if m.emulate(ret['target_ea'], xref.frm):
@@ -548,8 +529,7 @@ def dump_msg_id_usage():
         fp.write(json.dumps(result))
 
 
-
 if __name__ == "__main__":
-    dump_ke_task_create()
-
+    # dump_ke_task_create()
+    dump_msg_id_usage()
 
