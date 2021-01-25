@@ -654,7 +654,7 @@ def dump_msg_id_usage():
 
 
 if __name__ == "__main__":
-    dump_ke_task_create()
-    dump_msg_id_usage()
+    # dump_ke_task_create()
+    # dump_msg_id_usage()
 
     track_ke_event_callback_set()

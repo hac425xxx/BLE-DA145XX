@@ -245,3 +245,46 @@ struct ke_task_desc
     /// Maximum index of supported instances of the task.
     uint16_t idx_max;
 };
+
+#define KE_MEM_RW 1
+#define KE_PROFILING 1
+
+
+/// Kernel memory heaps types.
+enum
+{
+    /// Memory allocated for environment variables
+    KE_MEM_ENV,
+    /// Memory allocated for Attribute database
+    KE_MEM_ATT_DB,
+    /// Memory allocated for kernel messages
+    KE_MEM_KE_MSG,
+    /// Non Retention memory block
+    KE_MEM_NON_RETENTION,
+    KE_MEM_BLOCK_MAX,
+};
+
+/// Kernel environment definition
+struct ke_env_tag
+{
+    /// Queue of sent messages but not yet delivered to receiver
+    struct co_list queue_sent;
+    /// Queue of messages delivered but not consumed by receiver
+    struct co_list queue_saved;
+    /// Queue of timers
+    struct co_list queue_timer;
+
+    #if (KE_MEM_RW)
+    /// Root pointer = pointer to first element of heap linked lists
+    struct mblock_free * heap[KE_MEM_BLOCK_MAX];
+    /// Size of heaps
+    uint16_t heap_size[KE_MEM_BLOCK_MAX];
+
+    #if (KE_PROFILING)
+    /// Size of heap used
+    uint16_t heap_used[KE_MEM_BLOCK_MAX];
+    /// Maximum heap memory used
+    uint32_t max_heap_used;
+    #endif //KE_PROFILING
+    #endif //KE_MEM_RW
+};
