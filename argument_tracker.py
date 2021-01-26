@@ -526,16 +526,16 @@ def dump_ke_task_create():
     at = ArgumentTracker()
 
     ke_task_create_addr = idaapi.get_name_ea(idaapi.BADADDR, "ke_task_create")
-    print "ke_task_create_addr: 0x{:X}".format(ke_task_create_addr)
+    # print "ke_task_create_addr: 0x{:X}".format(ke_task_create_addr)
     for xref in XrefsTo(ke_task_create_addr, 0):
         frm_func = idc.get_func_name(xref.frm)
         ret = at.track_register(xref.frm, "r1")
         if ret.has_key("target_ea"):
-            print "target_ea: 0x{:X}".format(ret['target_ea'])
+            # print "target_ea: 0x{:X}".format(ret['target_ea'])
             if m.emulate(ret['target_ea'], xref.frm):
                 reg = m.mu.reg_read(UC_ARM_REG_R1)
                 logger.log(
-                    "addr: 0x{:X}, task_struct: 0x{:X}".format(xref.frm, reg))
+                    "call ke_task_create on {} 0x{:X}, task_struct: 0x{:X}".format(frm_func, xref.frm, reg))
 
                 retsult[xref.frm] = reg
 
@@ -654,7 +654,7 @@ def dump_msg_id_usage():
 
 
 if __name__ == "__main__":
-    # dump_ke_task_create()
+    dump_ke_task_create()
     # dump_msg_id_usage()
 
-    track_ke_event_callback_set()
+    # track_ke_event_callback_set()

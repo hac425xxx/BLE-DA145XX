@@ -288,3 +288,11 @@ struct ke_env_tag
     #endif //KE_PROFILING
     #endif //KE_MEM_RW
 };
+
+typedef uint16_t ke_task_id_t;
+// #define KE_BUILD_ID(type, index) ( (ke_task_id_t)(((index) << 8)|(type)) )
+struct ke_msg_id_struct
+{
+    ke_task_id_t index:24;
+    ke_task_id_t type:8;
+};
