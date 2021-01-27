@@ -296,3 +296,444 @@ struct ke_msg_id_struct
     ke_task_id_t index:24;
     ke_task_id_t type:8;
 };
+
+
+enum {
+    BLE_CNTL_ADDR = 0x114,
+
+};
+
+
+#define BLE_CENTRAL 1
+#define BLE_BROADCASTER 1
+#define BLE_CHNL_ASSESS 1
+#define __DA14531__ 1
+#define ECDH_KEY_LEN        32
+
+
+/*
+ * TYPE DEFINITIONS
+ ****************************************************************************************
+ */
+/// Advertising parameters
+struct advertising_pdu_params
+{
+    /// Pointer on the data adv request
+    struct ke_msg * adv_data_req;
+    /// Connection interval min
+    uint16_t intervalmin;
+    /// Connection interval max
+    uint16_t intervalmax;
+    /// Channel mapping
+    uint8_t channelmap;
+    /// Filtering policy
+    uint8_t filterpolicy;
+    /// Advertising type
+    uint8_t type;
+    /// Data length
+    uint8_t datalen;
+    /// Scan RSP length
+    uint8_t scanrsplen;
+    /// Local address type
+    uint8_t own_addr_type;
+    /// Advertising periodicity: true for low duty cycle, false for high duty cycle
+    bool adv_ldc_flag;
+    ///Peer address type: public=0x00 /random = 0x01
+    uint8_t        peer_addr_type;
+    ///Peer Bluetooth device address used for IRK selection
+    struct bd_addr peer_addr;
+};
+
+///Scanning parameters
+struct scanning_pdu_params
+{
+    /// Scan interval
+    uint16_t interval;
+    /// Scan window
+    uint16_t window;
+    /// Filtering policy
+    uint8_t filterpolicy;
+    /// Scanning type
+    uint8_t type;
+    /// Duplicate the advertising report
+    uint8_t filter_duplicate;
+    /// Local address type
+    uint8_t own_addr_type;
+};
+
+///Access address generation structure
+struct access_addr_gen
+{
+    /// random
+    uint8_t intrand;
+    /// index 1
+    uint8_t ct1_idx;
+    /// index 2
+    uint8_t ct2_idx;
+};
+
+/// Advertising report list
+struct adv_device_list
+{
+    /// Header
+    struct co_list_hdr hdr;
+    /// Advertising type
+    uint8_t adv_type;
+    /// Advertising device address
+    struct bd_addr adv_addr;
+};
+
+//advertising pdu
+///structure adv undirected
+struct llm_pdu_adv
+{
+    /// advertising address
+    struct bd_addr  adva;
+    /// advertising data
+    uint8_t         *adva_data;
+};
+///structure adv directed
+struct llm_pdu_adv_directed
+{
+    /// advertising address
+    struct bd_addr  adva;
+    /// initiator address
+    struct bd_addr  inita;
+};
+
+//scanning pdu
+///structure scan request
+struct llm_pdu_scan_req
+{
+    /// scanning address
+    struct bd_addr  scana;
+    /// advertising address
+    struct bd_addr  adva;
+};
+///structure scan response
+struct llm_pdu_scan_rsp
+{
+    /// advertising address
+    struct bd_addr  adva;
+    /// scan response data
+    uint8_t         *scan_data;
+
+};
+///initiating pdu
+///structure connection request reception
+struct llm_pdu_con_req_rx
+{
+    /// initiator address
+    struct bd_addr      inita;
+    /// advertiser address
+    struct bd_addr      adva;
+    /// access address
+    struct access_addr  aa;
+    /// CRC init
+    struct crc_init     crcinit;
+    /// window size
+    uint8_t             winsize;
+    /// window offset
+    uint16_t            winoffset;
+    /// interval
+    uint16_t            interval;
+    /// latency
+    uint16_t            latency;
+    /// timeout
+    uint16_t            timeout;
+    /// channel mapping
+    struct le_chnl_map  chm;
+    /// hopping
+    uint8_t             hop_sca;
+};
+///structure connection request transmission
+struct llm_pdu_con_req_tx
+{
+    /// access address
+    struct access_addr  aa;
+    /// CRC init
+    struct crc_init     crcinit;
+    /// window size
+    uint8_t             winsize;
+    /// window offset
+    uint16_t            winoffset;
+    /// interval
+    uint16_t            interval;
+    /// latency
+    uint16_t            latency;
+    /// timeout
+    uint16_t            timeout;
+    /// channel mapping
+    struct le_chnl_map  chm;
+    /// hopping
+    uint8_t             hop_sca;
+};
+
+///structure for the test mode
+struct llm_test_mode
+{
+    /// flag indicating the end of test
+    bool end_of_tst;
+    /// Direct test type
+    uint8_t  directtesttype;
+};
+
+/// LLM environment structure to be saved
+struct llm_le_env_tag
+{
+    /// List of encryption requests
+    struct co_list enc_req;
+
+    #if (BLE_CENTRAL || BLE_OBSERVER)
+    /// Advertising reports filter policy
+    struct co_list adv_list;
+
+    /// Scanning parameters
+    struct scanning_pdu_params *scanning_params;
+    #endif //(BLE_CENTRAL || BLE_OBSERVER)
+
+    #if (BLE_BROADCASTER || BLE_PERIPHERAL)
+    /// Advertising parameters
+    struct advertising_pdu_params *advertising_params;
+    #endif //(BLE_BROADCASTER || BLE_PERIPHERAL)
+
+    #if (BLE_CENTRAL || BLE_PERIPHERAL)
+    /// Connected bd address list
+    struct co_list cnx_list;
+    #endif //(BLE_CENTRAL || BLE_PERIPHERAL)
+
+    /// Event mask
+    struct evt_mask eventmask;
+
+    /// Access address
+    struct access_addr_gen aa;
+
+    ///protection for the command
+    bool llm_le_set_host_ch_class_cmd_sto;
+
+    /// conhdl_allocated
+    uint16_t conhdl_alloc;
+
+    #if (BLE_CHNL_ASSESS)
+    /// Duration of channel assessment timer
+    uint16_t chnl_assess_timer;
+    /// Max number of received packets
+    uint16_t chnl_assess_nb_pkt;
+    /// Max number of received bad packets
+    uint16_t chnl_assess_nb_bad_pkt;
+    #endif // (BLE_CHNL_ASSESS)
+
+    /// Element
+    struct ea_elt_tag *elt;
+
+    ///encryption pending
+    bool enc_pend;
+
+    ///test mode
+    struct llm_test_mode test_mode;
+
+    /// Active link counter
+    uint8_t cpt_active_link;
+
+    /// Current channel map
+    struct le_chnl_map ch_map;
+
+    /// random bd_address
+    struct bd_addr rand_add;
+
+    /// public bd_address
+    struct bd_addr public_add;
+
+    /// current @type in the register
+    uint8_t curr_addr_type;
+
+    #if (BLE_CHNL_ASSESS)
+    /// Minimum received signal strength
+    int8_t chnl_assess_min_rssi;
+    /// Counter value used for channel reassessment
+    uint8_t chnl_reassess_cnt_val;
+    /// Counter used for channel reassessment
+    uint8_t chnl_reassess_cnt;
+    #endif //(BLE_CHNL_ASSESS)
+
+    // TODO add missing comments
+    uint16_t    connInitialMaxTxOctets;
+    uint16_t    connInitialMaxTxTime;
+#if defined (__DA14531__)
+    uint16_t suggestedTxOctets;
+    uint16_t suggestedTxTime;
+#endif
+    uint16_t    supportedMaxTxOctets;
+    uint16_t    supportedMaxTxTime;
+    uint16_t    supportedMaxRxOctets;
+    uint16_t    supportedMaxRxTime;
+
+    uint8_t     address_resolution_enable;
+    struct co_list  llm_resolving_list;
+    uint16_t    rpa_timeout;
+
+    /// Local address type
+    uint8_t own_addr_type;
+    /// Resolving list being used for AIR_OP
+    struct ll_resolving_list *rl;
+    /// Resolving list being used for own address
+    struct ll_resolving_list *rlown;
+    /// bitfiled for timer usage for local/peer RPA
+    uint8_t timer;
+    /// Peer address type in Initiating state
+    uint8_t peer_addr_type;
+    /// Peer bd_address in Initiating state
+    struct bd_addr peer_addr;
+
+    uint8_t     llm_resolving_list_index;
+    struct co_list  resolve_pending_events;
+
+    /// List of P256 requests
+    struct co_list p256_req;
+    uint8_t llm_p256_private_key[ECDH_KEY_LEN];
+    uint8_t llm_p256_state;
+};
+
+
+
+/*
+ * TYPE DEFINITIONS
+ ****************************************************************************************
+ */
+
+/// Remote version information structure
+struct rem_version
+{
+    /// LMP version
+    uint8_t vers;
+    /// Manufacturer ID
+    uint16_t compid;
+    /// LMP subversion
+    uint16_t subvers;
+};
+
+/// Encryption structure
+struct encrypt
+{
+    /// Session key diversifier
+    struct sess_k_div   skd;
+    /// Long term key
+    struct ltk          ltk;
+};
+
+
+#define LE_DATA_FREQ_LEN    0x25
+#define BLE_CHNL_ASSESS 1
+#define __DA14531__ 1
+
+/// Operation type
+enum llc_op_type
+{
+    /// Parameters update operation
+    LLC_OP_PARAM_UPD         = 0x00,
+
+    /// Max number of operations
+    LLC_OP_MAX
+};
+
+
+/// LLC environment structure
+struct llc_env_tag
+{
+    /// Request operation Kernel message
+    void* operation[LLC_OP_MAX];
+    /// Pointer to the associated @ref LLD event
+    struct ea_elt_tag *elt;
+    /// Peer version obtained using the LL_VERSION_IND LLCP message
+    struct rem_version  peer_version;
+
+    /// Link supervision time out
+    uint16_t            sup_to;
+    /// New link supervision time out to be applied
+    uint16_t            n_sup_to;
+    /// Authenticated payload time out (expressed in units of 10 ms)
+    uint16_t            auth_payl_to;
+    /// Authenticated payload time out margin (expressed in units of 10 ms)
+    uint16_t            auth_payl_to_margin;
+    /// Variable to save the previous state
+    ke_task_id_t        previous_state;
+    /// LLC status
+    uint16_t            llc_status;
+    ///Current channel map
+    struct le_chnl_map  ch_map;
+    ///New channel map - Will be applied at instant when a channel map update is pending
+    struct le_chnl_map  n_ch_map;
+    /// Received signal strength indication
+    int8_t              rssi;
+    /// Features used by the stack
+    struct le_features  feats_used;
+    /// Encryption state
+    uint8_t             enc_state;
+    /// Structure dedicated for the encryption
+    struct encrypt      encrypt;
+    /// Transmit packet counter
+    uint8_t             tx_pkt_cnt;
+    /// Disconnection reason
+    uint8_t             disc_reason;
+
+    /// rx status
+    uint8_t             rx_status;
+    /// feature request received first check
+    bool                first_check;
+
+    #if (BLE_CHNL_ASSESS)
+    /// Channel Assessment - Number of packets received on each channel
+    uint8_t            chnl_assess_pkt_cnt[LE_DATA_FREQ_LEN];
+    /**
+     * Channel Assessment - Number of packets received with a RSSI greater than the min
+     * RSSI threshold and without found synchronization on each channel
+     */
+    uint8_t            chnl_assess_bad_pkt_cnt[LE_DATA_FREQ_LEN];
+    #endif //(BLE_CHNL_ASSESS)
+    #if (BLE_TESTER)
+    struct hci_tester_set_le_params_cmd tester_params;
+    #endif
+    //GZ 4.2 LEN
+    uint16_t            connMaxTxOctets;
+    uint16_t            connMaxRxOctets;
+    uint16_t            connRemoteMaxTxOctets;
+    uint16_t            connRemoteMaxRxOctets;
+    uint16_t            connEffectiveMaxTxOctets;
+    uint16_t            connEffectiveMaxRxOctets;
+    uint16_t            connMaxTxTime;
+    uint16_t            connMaxRxTime;
+    uint16_t            connRemoteMaxTxTime;
+    uint16_t            connRemoteMaxRxTime;
+    uint16_t            connEffectiveMaxTxTime;
+    uint16_t            connEffectiveMaxRxTime;
+    //our value to take time converted to octets into account
+    uint16_t            connEffectiveMaxTxOctets_Time;
+    /// length request received
+    bool                llcp_length_req_first_check;
+    /// length response received and queues
+    bool                llcp_length_rsp_queued;
+    /// packet counter free running
+    uint32_t            pkt_cnt_tot;
+    /// bad packet counter free running
+    uint32_t            pkt_cnt_bad_tot;
+    /// packet counter temporary for operations
+    uint32_t            pkt_cnt;
+    /// bad packet counter temporary for operations
+    uint32_t            pkt_cnt_bad;
+#if defined (__DA14531__)
+    /* Queue with the HCI ACL Tx packets that are waiting for transmission. Each
+     * packet might be further fragmented to one or more fragments (tx descriptors),
+     * and <acl_flushed_tx_desc_cnt> will be increased by one for each fragment.
+     * When the whole packet will be provided to the LLD for transmission, the packet
+     * will move to the <acl_unacked_tx_data_queue> queue. */
+    struct co_list acl_pending_tx_data_queue;
+    /* Queue with the HCI ACL Tx packets that have been provided to the LLD for transmission,
+     * but not all fragments have been yet acked by the peer. */
+    struct co_list acl_unacked_tx_data_queue;
+    /* Counts the tx descriptors that have been been acked by the peer. When all the tx
+     * fragments of a packet residing in the <acl_unacked_tx_data_queue> have been acked,
+     * the packet will be removed by the <acl_unacked_tx_data_queue> and a HCI_NB_CMP_PKTS_EVT_CODE
+     * event will be sent to the host. <acl_flushed_tx_desc_cnt> will also be decreased. */
+    uint8_t acl_flushed_tx_desc_cnt;
+#endif
+};

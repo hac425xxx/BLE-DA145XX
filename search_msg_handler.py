@@ -67,27 +67,35 @@ def del_ref(frm, to):
     idaapi.del_cref(to, frm, 0)
 
 
-usage = {}
+def main():
+    usage = {}
 
-with open("msg_id_usage.json", "r") as fp:
-    import json
-    usage = json.loads(fp.read())
+    with open("msg_id_usage.json", "r") as fp:
+        import json
+        usage = json.loads(fp.read())
 
 
-for k, v in usage.items():
-    print k
-    frm_ea = idaapi.get_name_ea(idaapi.BADADDR, str(k))
+    for k, v in usage.items():
+        print k
+        frm_ea = idaapi.get_name_ea(idaapi.BADADDR, str(k))
 
-    if frm_ea == idaapi.BADADDR:
-        frm_ea = int(k)
+        if frm_ea == idaapi.BADADDR:
+            frm_ea = int(k)
 
-    for msg_id in v:
-        for handler in search_msg_handler(msg_id):
+        for msg_id in v:
+            for handler in search_msg_handler(msg_id):
 
-            if frm_ea & 1:
-                frm_ea -= 1
+                if frm_ea & 1:
+                    frm_ea -= 1
 
-            if handler & 1:
-                handler -= 1
+                if handler & 1:
+                    handler -= 1
 
-            add_ref(frm_ea, handler)
+                add_ref(frm_ea, handler)
+
+if __name__ == "__main__":
+    search_msg_handler(0x806)
+    
+    # main()
+
+    
