@@ -34,7 +34,7 @@ def search_msg_handler(msg_id):
 
     ret = []
 
-    data = " ".join(re.findall(".{2}", struct.pack("I", msg_id).encode("hex")))
+    data = " ".join(re.findall(".{2}", struct.pack("H", msg_id).encode("hex")))
     addr = 0x07F00000
     find_addr = idc.find_binary(addr, SEARCH_DOWN, data)
 
@@ -94,7 +94,7 @@ def main():
                 add_ref(frm_ea, handler)
 
 if __name__ == "__main__":
-    search_msg_handler(0x806)
+    search_msg_handler(0x10D)
     
     # main()
 
